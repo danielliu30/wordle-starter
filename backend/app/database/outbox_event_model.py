@@ -6,6 +6,8 @@ SQLAlchemy ORM model for outbox pattern events.
 from sqlalchemy import Column, String, DateTime, Text, JSON, CheckConstraint, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 import uuid
 
 Base = declarative_base()
