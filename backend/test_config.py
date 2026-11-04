@@ -31,7 +31,6 @@ def test_settings_with_defaults():
     # Verify default values
     assert settings.database_url == "sqlite:///./wordle.db"
     assert settings.redis_url == "redis://localhost:6379/0"
-    assert settings.jwt_secret_key == "change-this-in-production"
     assert settings.access_token_ttl == 900
     assert settings.refresh_token_ttl == 604800
 
@@ -107,6 +106,20 @@ def test_settings_all_required_fields_have_defaults():
     assert settings.database_query_timeout > 0
     assert settings.redis_timeout > 0
     assert settings.api_request_timeout > 0
+
+
+def test_jwt_secret_key_default_is_random():
+    """
+    Test that an unset JWT_SECRET_KEY yields an unpredictable signing key
+    instead of a hard-coded public one.
+    """
+    os.environ.pop("JWT_SECRET_KEY", None)
+
+    first = Settings()
+    second = Settings()
+
+    assert len(first.jwt_secret_key) >= 32
+    assert first.jwt_secret_key != second.jwt_secret_key
 
 
 def test_settings_ignores_unrelated_dotenv_entries(tmp_path):

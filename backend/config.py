@@ -7,6 +7,9 @@ It reads settings from environment variables and provides type-safe access.
 Environment variables are set in .env file or system environment.
 This follows the settings pattern to ensure all configuration is in one place.
 """
+import secrets
+
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -34,9 +37,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     
     # Security - JWT Tokens
-    # Secret key used to sign JWT tokens (should be kept secret in production)
-    # WARNING: Change this in production!
-    jwt_secret_key: str = "change-this-in-production"
+    # Secret key used to sign JWT tokens. Set JWT_SECRET_KEY in every deployment.
+    # If unset, a random key is generated per process so tokens can't be forged,
+    # but they won't survive restarts or be shared across workers.
+    jwt_secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     
     # JWT algorithm used for token signing
     # HS256 is symmetric key algorithm (simpler than RS256)
