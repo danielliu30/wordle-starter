@@ -28,14 +28,3 @@ async def test_test_session(test_session):
     """
     assert test_session is not None
     assert isinstance(test_session, AsyncSession)
-
-
-async def test_test_session_isolation(test_session):
-    """
-    Test that test sessions are isolated.
-    
-    Each test should get a fresh session to prevent interference.
-    """
-    # This test verifies the session is fresh
-    # The fixture should rollback any changes between tests
-    assert True

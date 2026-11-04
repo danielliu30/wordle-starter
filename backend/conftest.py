@@ -1,7 +1,7 @@
 """
 Test Environment Configuration
 
-Provides test database and Redis configuration for running tests.
+Provides test database configuration for running tests.
 Uses in-memory SQLite for speed and isolation.
 """
 import pytest
@@ -50,15 +50,3 @@ async def test_session(test_engine):
         
         # Rollback any changes (database is in-memory, so this is optional)
         await session.rollback()
-
-
-@pytest.fixture
-def test_redis():
-    """
-    Create a mock Redis client for testing.
-    
-    For now, returns None. Will be replaced with actual Redis mock
-    when Redis dependency is added.
-    """
-    # TODO: Add Redis mock when Redis is integrated
-    return None
