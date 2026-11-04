@@ -6,6 +6,8 @@ SQLAlchemy ORM model for user statistics.
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 import uuid
 
 Base = declarative_base()
