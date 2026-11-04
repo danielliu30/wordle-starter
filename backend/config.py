@@ -27,9 +27,9 @@ class Settings(BaseSettings):
     """
     
     # Database Configuration
-    # Connection string for the database (PostgreSQL or SQLite)
-    # Default is SQLite for local development
-    database_url: str = "sqlite:///./wordle.db"
+    # Connection string for the database (PostgreSQL only)
+    # Same database for local dev and production
+    database_url: str = "postgresql://user:password@localhost:5432/wordle"
     
     # Redis Configuration
     # Connection string for Redis cache

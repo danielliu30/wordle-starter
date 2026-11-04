@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, inspect
 from app.database.outbox_event_model import Base, OutboxEvent
 
 def test_outbox_event_model_columns():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("postgresql://user:password@localhost:5432/test")
     Base.metadata.create_all(engine)
     inspector = inspect(engine)
     columns = [col['name'] for col in inspector.get_columns('outbox_events')]
