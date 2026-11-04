@@ -6,6 +6,8 @@ SQLAlchemy ORM model for Word of the Day attempts.
 from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 import uuid
 
 Base = declarative_base()
