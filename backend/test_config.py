@@ -29,7 +29,7 @@ def test_settings_with_defaults():
     settings = Settings()
     
     # Verify default values
-    assert settings.database_url == "sqlite:///./wordle.db"
+    assert settings.database_url == "postgresql+asyncpg://postgres:postgres@localhost:5432/wordle"
     assert settings.redis_url == "redis://localhost:6379/0"
     assert settings.access_token_ttl == 900
     assert settings.refresh_token_ttl == 604800
