@@ -98,6 +98,8 @@ class Settings(BaseSettings):
         env_file = ".env"
         # Environment variables are case-insensitive
         case_sensitive = False
+        # Ignore unrelated keys in a shared .env file (e.g. VITE_* for the frontend)
+        extra = "ignore"
 
 
 # Global settings instance - import this throughout the application

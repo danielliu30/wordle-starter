@@ -107,3 +107,19 @@ def test_settings_all_required_fields_have_defaults():
     assert settings.database_query_timeout > 0
     assert settings.redis_timeout > 0
     assert settings.api_request_timeout > 0
+
+
+def test_settings_ignores_unrelated_dotenv_entries(tmp_path):
+    """
+    Test that unrelated keys in a shared .env file don't block loading.
+    """
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "DATABASE_URL=postgresql://dotenv/db\n"
+        "VITE_API_URL=http://localhost:8000\n"
+    )
+    os.environ.pop("DATABASE_URL", None)
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.database_url == "postgresql://dotenv/db"
