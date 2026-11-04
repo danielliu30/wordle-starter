@@ -2,25 +2,24 @@
 Test Environment Configuration
 
 Provides test database configuration for running tests.
-Uses in-memory SQLite for speed and isolation.
+Uses PostgreSQL for consistency with production.
 """
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from config import settings
 from app.database.models import Base
 
 
 @pytest.fixture(scope="session")
 async def test_engine():
     """
-    Create an in-memory SQLite database for testing.
+    Create a PostgreSQL database for testing.
     
-    Using in-memory SQLite ensures:
-    - Tests run quickly (no disk I/O)
-    - Tests are isolated (each test gets fresh database)
-    - No cleanup needed (database is in-memory, discarded after test)
+    Uses the same database as production for consistency.
+    Tests should be run against a test database, not production.
     """
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    engine = create_async_engine(settings.database_url)
     
     # Create all tables
     async with engine.begin() as conn:
@@ -28,7 +27,9 @@ async def test_engine():
     
     yield engine
     
-    # Cleanup is automatic (in-memory database is discarded)
+    # Cleanup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture(scope="function")
@@ -48,5 +49,5 @@ async def test_session(test_engine):
     async with async_session() as session:
         yield session
         
-        # Rollback any changes (database is in-memory, so this is optional)
+        # Rollback any changes
         await session.rollback()
