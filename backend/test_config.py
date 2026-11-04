@@ -136,3 +136,12 @@ def test_settings_ignores_unrelated_dotenv_entries(tmp_path):
     settings = Settings(_env_file=env_file)
 
     assert settings.database_url == "postgresql://dotenv/db"
+
+
+def test_settings_rejects_unknown_overrides():
+    """
+    Test that a misspelled constructor override fails instead of silently
+    falling back to the default.
+    """
+    with pytest.raises(ValidationError):
+        Settings(database_ur1="postgresql://db/prod")

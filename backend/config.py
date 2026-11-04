@@ -10,7 +10,7 @@ This follows the settings pattern to ensure all configuration is in one place.
 import secrets
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 
 
 class Settings(BaseSettings):
@@ -102,8 +102,26 @@ class Settings(BaseSettings):
         env_file = ".env"
         # Environment variables are case-insensitive
         case_sensitive = False
-        # Ignore unrelated keys in a shared .env file (e.g. VITE_* for the frontend)
-        extra = "ignore"
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # Skip unrelated keys in a shared .env file (e.g. VITE_* for the frontend)
+        # while still rejecting unknown constructor overrides.
+        def known_dotenv_settings() -> dict:
+            return {
+                key: value
+                for key, value in dotenv_settings().items()
+                if key in settings_cls.model_fields
+            }
+
+        return init_settings, env_settings, known_dotenv_settings, file_secret_settings
 
 
 # Global settings instance - import this throughout the application
