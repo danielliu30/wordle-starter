@@ -2,10 +2,10 @@
 User Model
 
 SQLAlchemy ORM model for user accounts.
+Database-agnostic (works with SQLite and PostgreSQL).
 """
 from sqlalchemy import Column, String, Integer, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
 Base = declarative_base()
@@ -20,8 +20,8 @@ class User(Base):
     """
     __tablename__ = "users"
     
-    # Primary key using UUID for security and uniqueness
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Primary key using String UUID for database compatibility
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Email is unique and indexed for fast lookups
     email = Column(String(255), unique=True, nullable=False, index=True)
