@@ -12,7 +12,7 @@ import uuid
 import pytest
 import pytest_asyncio
 from sqlalchemy import Column, Table, text
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateTable
@@ -43,6 +43,7 @@ def test_word_of_day_attempt_table_compiles_for_postgresql():
     assert "REFERENCES users (id) ON DELETE CASCADE" in ddl
     assert "REFERENCES games (id) ON DELETE SET NULL" in ddl
     assert "attempt_date DATE NOT NULL" in ddl
+    assert "CONSTRAINT uq_wod_user_date UNIQUE (user_id, attempt_date)" in ddl
 
 
 requires_postgres = pytest.mark.skipif(
@@ -102,3 +103,16 @@ async def test_attempt_date_rejects_non_dates_on_postgresql(pg_session, user):
             text("INSERT INTO word_of_day_attempts (id, user_id, attempt_date) VALUES (:id, :uid, CAST(:d AS DATE))"),
             {"id": uuid.uuid4(), "uid": user.id, "d": "2026-13-40"},
         )
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_one_attempt_per_user_per_day_on_postgresql(pg_session, user):
+    day = datetime.date(2026, 11, 4)
+    pg_session.add(WordOfDayAttempt(user_id=user.id, attempt_date=day))
+    await pg_session.commit()
+    pg_session.add(WordOfDayAttempt(user_id=user.id, attempt_date=day + datetime.timedelta(days=1)))
+    await pg_session.commit()
+    pg_session.add(WordOfDayAttempt(user_id=user.id, attempt_date=day))
+    with pytest.raises(IntegrityError):
+        await pg_session.commit()
