@@ -1,39 +1,41 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import App from './App'
 
 describe('App', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn())
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('shows a loading state while fetching', () => {
-    fetch.mockReturnValue(new Promise(() => {}))
+  it('renders the header and home view by default', () => {
     render(<App />)
-    expect(screen.getByText(/Loading\.\.\./)).toBeInTheDocument()
+    // Brand text and the home view heading both read "Wordle".
+    expect(screen.getAllByText('Wordle').length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('heading', { name: 'Wordle' }),
+    ).toBeInTheDocument()
   })
 
-  it('renders the API response on success', async () => {
-    fetch.mockResolvedValue({
-      json: () => Promise.resolve({ message: 'Hello World' }),
-    })
+  it('navigates between views via the nav', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    await waitFor(() =>
-      expect(screen.getByText(/Hello World/)).toBeInTheDocument(),
-    )
+
+    await user.click(screen.getByRole('button', { name: 'Stats' }))
+    expect(
+      screen.getByRole('heading', { name: 'Stats' }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Play' }))
+    expect(
+      screen.getByRole('heading', { name: 'Play' }),
+    ).toBeInTheDocument()
   })
 
-  it('renders an error message when the fetch fails', async () => {
-    fetch.mockRejectedValue(new Error('network down'))
+  it('marks the active nav item with aria-current', async () => {
+    const user = userEvent.setup()
     render(<App />)
-    await waitFor(() =>
-      expect(
-        screen.getByText(/Failed to connect to API/),
-      ).toBeInTheDocument(),
-    )
+
+    const statsButton = screen.getByRole('button', { name: 'Stats' })
+    expect(statsButton).not.toHaveAttribute('aria-current')
+
+    await user.click(statsButton)
+    expect(statsButton).toHaveAttribute('aria-current', 'page')
   })
 })
