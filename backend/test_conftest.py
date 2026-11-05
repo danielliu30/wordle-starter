@@ -50,6 +50,9 @@ async def test_committed_data_does_not_leak(test_session):
     Test that data committed by a previous test is not visible.
     """
     result = await test_session.execute(
-        text("SELECT name FROM sqlite_master WHERE name = 'isolation_check'")
+        text(
+            "SELECT tablename FROM pg_tables "
+            "WHERE schemaname = current_schema() AND tablename = 'isolation_check'"
+        )
     )
     assert result.scalar() is None
