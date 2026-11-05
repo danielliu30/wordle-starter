@@ -14,7 +14,7 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.schema import CreateTable
+from sqlalchemy.schema import CreateIndex, CreateTable
 from app.database.outbox_event_model import Base, OutboxEvent
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
@@ -31,6 +31,18 @@ def test_outbox_event_model_columns():
 def test_outbox_table_compiles_for_postgresql():
     ddl = str(CreateTable(OutboxEvent.__table__).compile(dialect=postgresql.dialect()))
     assert "id UUID NOT NULL" in ddl
+    assert "payload JSONB NOT NULL" in ddl
+
+
+def test_outbox_indexes_compile_for_postgresql():
+    ddl = sorted(
+        str(CreateIndex(index).compile(dialect=postgresql.dialect()))
+        for index in OutboxEvent.__table__.indexes
+    )
+    assert ddl == [
+        "CREATE INDEX idx_outbox_aggregate ON outbox_events (aggregate_type, aggregate_id)",
+        "CREATE INDEX idx_outbox_status_created ON outbox_events (status, created_at)",
+    ]
 
 
 requires_postgres = pytest.mark.skipif(
