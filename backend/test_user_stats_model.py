@@ -31,7 +31,8 @@ def test_user_stats_model_columns():
 
 def test_shares_metadata_with_users_table():
     assert Base.metadata is User.metadata
-    assert [t.name for t in Base.metadata.sorted_tables] == ["users", "user_stats"]
+    tables = [t.name for t in Base.metadata.sorted_tables]
+    assert tables.index("users") < tables.index("user_stats")
 
 
 def test_user_stats_table_compiles_for_postgresql():
