@@ -4,7 +4,7 @@ Game Model
 SQLAlchemy ORM model for games.
 PostgreSQL only (same database for local dev and production).
 """
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, func
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, Index, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -24,4 +24,8 @@ class Game(Base):
     max_turns = Column(Integer, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     completed_at = Column(DateTime)
-    __table_args__ = (CheckConstraint("word_length BETWEEN 5 AND 8"),)
+    __table_args__ = (
+        CheckConstraint("word_length BETWEEN 5 AND 8"),
+        # Per-user game history, newest first.
+        Index("idx_games_user_created", "user_id", created_at.desc()),
+    )
