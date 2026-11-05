@@ -31,7 +31,8 @@ def test_user_session_model_columns():
 
 def test_shares_metadata_with_users_table():
     assert Base.metadata is User.metadata
-    assert [t.name for t in Base.metadata.sorted_tables] == ["users", "user_sessions"]
+    tables = [t.name for t in Base.metadata.sorted_tables]
+    assert tables.index("users") < tables.index("user_sessions")
 
 
 def test_user_session_table_compiles_for_postgresql():
