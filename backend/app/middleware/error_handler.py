@@ -57,9 +57,11 @@ async def general_exception_handler(request: Request, exc: Exception):
     request_id = getattr(request.state, "request_id", "unknown")
     logger.error("Unhandled exception", request_id=request_id, error=str(exc), exc_info=True)
     
+    # Starlette sends this 500 from outside RequestIDMiddleware, so set the header here.
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=_error_body(request, "INTERNAL_ERROR", "An unexpected error occurred"),
+        headers={"X-Request-ID": request_id},
     )
 
 

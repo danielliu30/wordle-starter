@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.middleware.error_handler import register_exception_handlers
+from app.middleware.request_id import RequestIDMiddleware
 
 app = FastAPI()
 register_exception_handlers(app)
@@ -13,7 +14,10 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+
+app.add_middleware(RequestIDMiddleware)
 
 
 @app.get("/")
