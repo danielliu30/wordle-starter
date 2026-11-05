@@ -37,7 +37,7 @@ def test_shares_metadata_with_users_table():
 def test_user_session_table_compiles_for_postgresql():
     ddl = str(CreateTable(UserSession.__table__).compile(dialect=postgresql.dialect()))
     assert "id UUID NOT NULL" in ddl
-    assert "user_id UUID NOT NULL" in ddl
+    assert "user_id UUID," in ddl
     assert "FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE" in ddl
 
 
@@ -88,7 +88,32 @@ async def test_user_session_insert_on_postgresql(pg_session):
 
 @requires_postgres
 @pytest.mark.asyncio
+async def test_guest_session_insert_on_postgresql(pg_session):
+    guest = make_session(role="guest")
+    pg_session.add(guest)
+    await pg_session.commit()
+    assert guest.user_id is None
+    assert isinstance(guest.id, uuid.UUID)
+
+
+@requires_postgres
+@pytest.mark.asyncio
 async def test_unknown_user_rejected_on_postgresql(pg_session):
     pg_session.add(make_session(user_id=uuid.uuid4(), role="user"))
+    with pytest.raises(IntegrityError):
+        await pg_session.commit()
+
+
+@requires_postgres
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role, has_user", [("user", False), ("guest", True), ("admin", False)])
+async def test_role_owner_mismatch_rejected_on_postgresql(pg_session, role, has_user):
+    user_id = None
+    if has_user:
+        user = User(email="a@example.com", password_hash="hash")
+        pg_session.add(user)
+        await pg_session.commit()
+        user_id = user.id
+    pg_session.add(make_session(user_id=user_id, role=role))
     with pytest.raises(IntegrityError):
         await pg_session.commit()

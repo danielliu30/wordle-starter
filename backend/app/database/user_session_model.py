@@ -17,14 +17,20 @@ class UserSession(Base):
     User sessions for refresh tokens.
     Stores refresh token sessions for JWT authentication.
     Tokens are hashed for security.
+    Guest sessions have no users row: user_id is NULL and the session id is the guest's id.
     """
     __tablename__ = "user_sessions"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     refresh_token_hash = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False)
     device_info = Column(JSON)
     created_at = Column(DateTime, server_default=func.now())
     expires_at = Column(DateTime, nullable=False)
     revoked_at = Column(DateTime)
-    __table_args__ = (CheckConstraint("role IN ('user', 'guest')"),)
+    __table_args__ = (
+        CheckConstraint(
+            "(role = 'user' AND user_id IS NOT NULL) OR (role = 'guest' AND user_id IS NULL)",
+            name="ck_user_sessions_role_owner",
+        ),
+    )
