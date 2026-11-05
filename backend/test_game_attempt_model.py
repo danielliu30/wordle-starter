@@ -39,6 +39,7 @@ def test_game_attempt_table_compiles_for_postgresql():
     assert "game_id UUID NOT NULL" in ddl
     assert "FOREIGN KEY(game_id) REFERENCES games (id) ON DELETE CASCADE" in ddl
     assert "CHECK (attempt_number > 0)" in ddl
+    assert "feedback JSONB NOT NULL" in ddl
     assert "CONSTRAINT uq_game_attempts_game_turn UNIQUE (game_id, attempt_number)" in ddl
 
 

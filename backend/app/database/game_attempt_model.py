@@ -4,8 +4,8 @@ Game Attempt Model
 SQLAlchemy ORM model for game attempts (guesses).
 PostgreSQL only (same database for local dev and production).
 """
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON, CheckConstraint, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 import uuid
 
 # Share the games table's metadata so the game_id foreign key resolves.
@@ -19,7 +19,7 @@ class GameAttempt(Base):
     game_id = Column(UUID(as_uuid=True), ForeignKey("games.id", ondelete="CASCADE"), nullable=False)
     attempt_number = Column(Integer, nullable=False)
     guess = Column(String(8), nullable=False)
-    feedback = Column(JSON, nullable=False)
+    feedback = Column(JSONB, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     __table_args__ = (
         CheckConstraint("attempt_number > 0"),
