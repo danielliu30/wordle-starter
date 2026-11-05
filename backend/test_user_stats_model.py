@@ -92,3 +92,16 @@ async def test_fractional_avg_guesses_round_trip_on_postgresql(pg_session):
         select(UserStats.avg_guesses_to_win).where(UserStats.user_id == stats.user_id)
     )).scalar_one()
     assert stored == Decimal("3.50")
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_guess_distribution_updates_persist_on_postgresql(pg_session):
+    stats = await add_stats(pg_session, guess_distribution={"5": {"3": 1}})
+    stats.record_guess_distribution(5, 3)
+    stats.record_guess_distribution(6, 4)
+    await pg_session.commit()
+    stored = (await pg_session.execute(
+        select(UserStats.guess_distribution).where(UserStats.user_id == stats.user_id)
+    )).scalar_one()
+    assert stored == {"5": {"3": 2}, "6": {"4": 1}}

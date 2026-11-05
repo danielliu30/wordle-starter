@@ -21,5 +21,14 @@ class UserStats(Base):
     current_streak = Column(Integer, default=0)
     best_streak = Column(Integer, default=0)
     avg_guesses_to_win = Column(Numeric(3, 2))
-    guess_distribution = Column(JSON, default={})
+    # {word_length: {guesses: count}}; plain JSON doesn't track in-place edits, so update it
+    # through record_guess_distribution, which assigns a new object.
+    guess_distribution = Column(JSON, default=dict)
     updated_at = Column(DateTime, server_default=func.now())
+
+    def record_guess_distribution(self, word_length: int, guesses: int) -> None:
+        """Count a win of a word_length-letter game in the given number of guesses."""
+        distribution = {length: dict(counts) for length, counts in (self.guess_distribution or {}).items()}
+        counts = distribution.setdefault(str(word_length), {})
+        counts[str(guesses)] = counts.get(str(guesses), 0) + 1
+        self.guess_distribution = distribution
