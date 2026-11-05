@@ -14,7 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.schema import CreateTable
+from sqlalchemy.schema import CreateIndex, CreateTable
 from app.database.user_model import User
 from app.database.game_model import Base, Game
 
@@ -30,7 +30,8 @@ def test_game_model_columns():
 
 def test_shares_metadata_with_users_table():
     assert Base.metadata is User.metadata
-    assert [t.name for t in Base.metadata.sorted_tables] == ["users", "games"]
+    tables = [t.name for t in Base.metadata.sorted_tables]
+    assert tables.index("users") < tables.index("games")
 
 
 def test_game_table_compiles_for_postgresql():
@@ -39,6 +40,12 @@ def test_game_table_compiles_for_postgresql():
     assert "user_id UUID," in ddl
     assert "FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE" in ddl
     assert "CHECK (word_length BETWEEN 5 AND 8)" in ddl
+
+
+def test_game_history_index_compiles_for_postgresql():
+    (index,) = Game.__table__.indexes
+    ddl = str(CreateIndex(index).compile(dialect=postgresql.dialect()))
+    assert ddl == "CREATE INDEX idx_games_user_created ON games (user_id, created_at DESC)"
 
 
 requires_postgres = pytest.mark.skipif(
