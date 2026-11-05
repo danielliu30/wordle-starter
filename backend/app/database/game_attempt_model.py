@@ -8,8 +8,8 @@ from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON, Chec
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-# Share the models' metadata so the game_id foreign key resolves once the games table is registered.
-from app.database.user_model import Base
+# Share the games table's metadata so the game_id foreign key resolves.
+from app.database.game_model import Base, Game  # noqa: F401
 
 
 class GameAttempt(Base):
