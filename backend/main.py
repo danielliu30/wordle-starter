@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.middleware.error_handler import register_exception_handlers
+
 app = FastAPI()
+register_exception_handlers(app)
 
 # Configure CORS
 app.add_middleware(
