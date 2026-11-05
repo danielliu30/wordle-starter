@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.schema import CreateTable
+from sqlalchemy.schema import CreateIndex, CreateTable
 from app.database.user_model import User
 from app.database.user_session_model import Base, UserSession
 
@@ -39,6 +39,17 @@ def test_user_session_table_compiles_for_postgresql():
     assert "id UUID NOT NULL" in ddl
     assert "user_id UUID," in ddl
     assert "FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE" in ddl
+
+
+def test_lookup_indexes_declared():
+    indexes = {
+        str(CreateIndex(index).compile(dialect=postgresql.dialect()))
+        for index in UserSession.__table__.indexes
+    }
+    assert indexes == {
+        "CREATE INDEX idx_sessions_user ON user_sessions (user_id)",
+        "CREATE INDEX idx_sessions_token ON user_sessions (refresh_token_hash)",
+    }
 
 
 requires_postgres = pytest.mark.skipif(

@@ -4,7 +4,7 @@ User Session Model
 SQLAlchemy ORM model for user sessions (refresh tokens).
 PostgreSQL only (same database for local dev and production).
 """
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, CheckConstraint, func
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, CheckConstraint, Index, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -33,4 +33,6 @@ class UserSession(Base):
             "(role = 'user' AND user_id IS NOT NULL) OR (role = 'guest' AND user_id IS NULL)",
             name="ck_user_sessions_role_owner",
         ),
+        Index("idx_sessions_user", "user_id"),
+        Index("idx_sessions_token", "refresh_token_hash"),
     )
