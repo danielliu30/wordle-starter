@@ -8,8 +8,9 @@ from sqlalchemy import Column, Date, DateTime, ForeignKey, CheckConstraint, Uniq
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-# Share the users table's metadata so the user_id foreign key resolves.
-from app.database.user_model import Base, User  # noqa: F401
+# Share the users and games tables' metadata so both foreign keys resolve.
+from app.database.game_model import Base, Game  # noqa: F401
+from app.database.user_model import User  # noqa: F401
 
 
 class WordOfDayAttempt(Base):

@@ -11,20 +11,14 @@ import uuid
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import Column, Table, text
+from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateTable
-from app.database.word_of_day_attempt_model import Base, User, WordOfDayAttempt
+from app.database.word_of_day_attempt_model import Base, Game, User, WordOfDayAttempt
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
-
-# The games model is not on this branch yet; register a minimal stand-in so the
-# game_id foreign key resolves when creating the schema.
-if "games" not in Base.metadata.tables:
-    Table("games", Base.metadata, Column("id", postgresql.UUID(as_uuid=True), primary_key=True))
-
 
 def test_word_of_day_attempt_model_columns():
     columns = WordOfDayAttempt.__table__.columns.keys()
@@ -33,8 +27,8 @@ def test_word_of_day_attempt_model_columns():
         assert col in columns
 
 
-def test_shares_metadata_with_users():
-    assert WordOfDayAttempt.metadata is User.metadata
+def test_shares_metadata_with_users_and_games():
+    assert WordOfDayAttempt.metadata is User.metadata is Game.metadata
 
 
 def test_word_of_day_attempt_table_compiles_for_postgresql():
