@@ -2,15 +2,14 @@
 User Session Model
 
 SQLAlchemy ORM model for user sessions (refresh tokens).
+PostgreSQL only (same database for local dev and production).
 """
 from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, CheckConstraint, func
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 import uuid
 
-Base = declarative_base()
+# Share the users table's metadata so the user_id foreign key resolves.
+from app.database.user_model import Base, User  # noqa: F401
 
 
 class UserSession(Base):
