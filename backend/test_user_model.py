@@ -54,11 +54,11 @@ async def pg_session():
     # Run in a throwaway schema so existing tables in the target database are never touched.
     schema = f"test_user_model_{uuid.uuid4().hex}"
     admin_engine = create_async_engine(TEST_DATABASE_URL)
-    async with admin_engine.begin() as conn:
-        await conn.execute(text(f'CREATE SCHEMA "{schema}"'))
     engine = create_async_engine(
         TEST_DATABASE_URL, connect_args={"server_settings": {"search_path": schema}}
     )
+    async with admin_engine.begin() as conn:
+        await conn.execute(text(f'CREATE SCHEMA "{schema}"'))
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
