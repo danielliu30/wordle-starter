@@ -5,12 +5,14 @@ the Compose database from inside the backend container:
     docker compose exec backend sh -c 'TEST_DATABASE_URL="$DATABASE_URL" pytest --noconftest test_word_of_day_attempt_model.py'
 The role needs CREATE on that database: each test runs in its own throwaway schema.
 """
+import datetime
 import os
 import uuid
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import Column, Table, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateTable
@@ -40,6 +42,7 @@ def test_word_of_day_attempt_table_compiles_for_postgresql():
     assert "id UUID NOT NULL" in ddl
     assert "REFERENCES users (id) ON DELETE CASCADE" in ddl
     assert "REFERENCES games (id) ON DELETE SET NULL" in ddl
+    assert "attempt_date DATE NOT NULL" in ddl
 
 
 requires_postgres = pytest.mark.skipif(
@@ -80,7 +83,22 @@ async def user(pg_session):
 @requires_postgres
 @pytest.mark.asyncio
 async def test_attempt_insert_on_postgresql(pg_session, user):
-    attempt = WordOfDayAttempt(user_id=user.id, attempt_date="2026-11-04")
+    attempt = WordOfDayAttempt(user_id=user.id, attempt_date=datetime.date(2026, 11, 4))
     pg_session.add(attempt)
     await pg_session.commit()
     assert isinstance(attempt.id, uuid.UUID)
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_attempt_date_rejects_non_dates_on_postgresql(pg_session, user):
+    await pg_session.execute(
+        text("INSERT INTO word_of_day_attempts (id, user_id, attempt_date) VALUES (:id, :uid, :d)"),
+        {"id": uuid.uuid4(), "uid": user.id, "d": datetime.date(2026, 11, 4)},
+    )
+    await pg_session.commit()
+    with pytest.raises(DBAPIError):
+        await pg_session.execute(
+            text("INSERT INTO word_of_day_attempts (id, user_id, attempt_date) VALUES (:id, :uid, CAST(:d AS DATE))"),
+            {"id": uuid.uuid4(), "uid": user.id, "d": "2026-13-40"},
+        )
