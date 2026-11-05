@@ -2,7 +2,7 @@
 Timeout Configuration
 
 Provides timeout configurations for various operations.
-Uses asyncio.wait_for to enforce timeouts.
+Uses asyncio.timeout to enforce timeouts.
 """
 import asyncio
 from config import settings
@@ -44,7 +44,11 @@ async def execute_with_timeout(coro, timeout: int):
     
     Use this to wrap any potentially long-running operation.
     """
+    deadline = asyncio.timeout(timeout)
     try:
-        return await asyncio.wait_for(coro, timeout=timeout)
-    except asyncio.TimeoutError:
-        raise TimeoutError(f"Operation timed out after {timeout} seconds")
+        async with deadline:
+            return await coro
+    except TimeoutError as exc:
+        if not deadline.expired():
+            raise
+        raise TimeoutError(f"Operation timed out after {timeout} seconds") from exc
