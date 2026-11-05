@@ -7,7 +7,7 @@ Used for distributed tracing and debugging across microservices.
 import uuid
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import PlainTextResponse, Response
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -52,3 +52,19 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request_id
 
         return response
+
+
+async def request_id_server_error_handler(request: Request, exc: Exception) -> Response:
+    """
+    Return the 500 response for unhandled exceptions with X-Request-ID set.
+
+    Starlette builds this response outside application middleware, so
+    RequestIDMiddleware never sees it. The ID it stored on request.state
+    is still available here because both share the same ASGI scope.
+    """
+    request_id = getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    return PlainTextResponse(
+        "Internal Server Error",
+        status_code=500,
+        headers={"X-Request-ID": request_id},
+    )
