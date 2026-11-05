@@ -144,3 +144,19 @@ async def test_concurrent_guess_distribution_increments_on_postgresql(pg_session
         await first.commit()
         await pending
         assert await read_distribution(first, stats.user_id) == {"5": {"3": 3}}
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_updated_at_refreshes_on_increment_on_postgresql(pg_session):
+    stats = await add_stats(pg_session)
+    created = (await pg_session.execute(
+        select(UserStats.updated_at).where(UserStats.user_id == stats.user_id)
+    )).scalar_one()
+    await asyncio.sleep(0.01)
+    await pg_session.execute(UserStats.increment_guess_distribution(stats.user_id, 5, 3))
+    await pg_session.commit()
+    updated = (await pg_session.execute(
+        select(UserStats.updated_at).where(UserStats.user_id == stats.user_id)
+    )).scalar_one()
+    assert updated > created

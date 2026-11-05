@@ -23,7 +23,7 @@ class UserStats(Base):
     avg_guesses_to_win = Column(Numeric(3, 2))
     # {word_length: {guesses: count}}
     guess_distribution = Column(JSONB, default=dict)
-    updated_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     @classmethod
     def increment_guess_distribution(cls, user_id, word_length: int, guesses: int) -> Update:
