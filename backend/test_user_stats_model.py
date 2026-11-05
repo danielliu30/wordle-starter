@@ -5,6 +5,7 @@ the Compose database (not published to the host) from inside the backend contain
     docker compose exec backend sh -c 'TEST_DATABASE_URL="$DATABASE_URL" pytest test_user_stats_model.py'
 The role needs CREATE on that database: each test runs in its own throwaway schema.
 """
+import asyncio
 import os
 import uuid
 from decimal import Decimal
@@ -46,7 +47,7 @@ requires_postgres = pytest.mark.skipif(
 
 
 @pytest_asyncio.fixture
-async def pg_session():
+async def pg_sessionmaker():
     # Run in a throwaway schema so existing tables in the target database are never touched.
     schema = f"test_user_stats_model_{uuid.uuid4().hex}"
     admin_engine = create_async_engine(TEST_DATABASE_URL)
@@ -58,13 +59,18 @@ async def pg_session():
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
-            yield session
+        yield async_sessionmaker(engine, expire_on_commit=False)
     finally:
         await engine.dispose()
         async with admin_engine.begin() as conn:
             await conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
         await admin_engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def pg_session(pg_sessionmaker):
+    async with pg_sessionmaker() as session:
+        yield session
 
 
 async def add_stats(pg_session, **values):
@@ -94,14 +100,47 @@ async def test_fractional_avg_guesses_round_trip_on_postgresql(pg_session):
     assert stored == Decimal("3.50")
 
 
+async def read_distribution(session, user_id):
+    return (await session.execute(
+        select(UserStats.guess_distribution).where(UserStats.user_id == user_id)
+    )).scalar_one()
+
+
 @requires_postgres
 @pytest.mark.asyncio
-async def test_guess_distribution_updates_persist_on_postgresql(pg_session):
+async def test_guess_distribution_increments_on_postgresql(pg_session):
     stats = await add_stats(pg_session, guess_distribution={"5": {"3": 1}})
-    stats.record_guess_distribution(5, 3)
-    stats.record_guess_distribution(6, 4)
+    await pg_session.execute(UserStats.increment_guess_distribution(stats.user_id, 5, 3))
+    await pg_session.execute(UserStats.increment_guess_distribution(stats.user_id, 6, 4))
     await pg_session.commit()
-    stored = (await pg_session.execute(
-        select(UserStats.guess_distribution).where(UserStats.user_id == stats.user_id)
-    )).scalar_one()
-    assert stored == {"5": {"3": 2}, "6": {"4": 1}}
+    assert await read_distribution(pg_session, stats.user_id) == {"5": {"3": 2}, "6": {"4": 1}}
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_guess_distribution_increments_from_null_on_postgresql(pg_session):
+    stats = await add_stats(pg_session, guess_distribution=None)
+    await pg_session.execute(UserStats.increment_guess_distribution(stats.user_id, 5, 3))
+    await pg_session.commit()
+    assert await read_distribution(pg_session, stats.user_id) == {"5": {"3": 1}}
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_concurrent_guess_distribution_increments_on_postgresql(pg_sessionmaker):
+    async with pg_sessionmaker() as setup:
+        stats = await add_stats(setup, guess_distribution={"5": {"3": 1}})
+    async with pg_sessionmaker() as first, pg_sessionmaker() as second:
+        await first.execute(UserStats.increment_guess_distribution(stats.user_id, 5, 3))
+
+        async def second_win():
+            await second.execute(UserStats.increment_guess_distribution(stats.user_id, 5, 3))
+            await second.commit()
+
+        # The second update waits on the first one's row lock, then applies to the committed value.
+        pending = asyncio.create_task(second_win())
+        await asyncio.sleep(0.1)
+        assert not pending.done()
+        await first.commit()
+        await pending
+        assert await read_distribution(first, stats.user_id) == {"5": {"3": 3}}

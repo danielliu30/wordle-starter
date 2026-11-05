@@ -4,8 +4,8 @@ User Stats Model
 SQLAlchemy ORM model for user statistics.
 PostgreSQL only (same database for local dev and production).
 """
-from sqlalchemy import Column, Integer, Numeric, DateTime, ForeignKey, JSON, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, Numeric, DateTime, ForeignKey, Text, Update, cast, func, literal, update
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 
 # Share the users table's metadata so the user_id foreign key resolves.
 from app.database.user_model import Base, User  # noqa: F401
@@ -21,14 +21,29 @@ class UserStats(Base):
     current_streak = Column(Integer, default=0)
     best_streak = Column(Integer, default=0)
     avg_guesses_to_win = Column(Numeric(3, 2))
-    # {word_length: {guesses: count}}; plain JSON doesn't track in-place edits, so update it
-    # through record_guess_distribution, which assigns a new object.
-    guess_distribution = Column(JSON, default=dict)
+    # {word_length: {guesses: count}}
+    guess_distribution = Column(JSONB, default=dict)
     updated_at = Column(DateTime, server_default=func.now())
 
-    def record_guess_distribution(self, word_length: int, guesses: int) -> None:
-        """Count a win of a word_length-letter game in the given number of guesses."""
-        distribution = {length: dict(counts) for length, counts in (self.guess_distribution or {}).items()}
-        counts = distribution.setdefault(str(word_length), {})
-        counts[str(guesses)] = counts.get(str(guesses), 0) + 1
-        self.guess_distribution = distribution
+    @classmethod
+    def increment_guess_distribution(cls, user_id, word_length: int, guesses: int) -> Update:
+        """UPDATE counting a win of a word_length-letter game in the given number of guesses.
+
+        The count is incremented in the database against the row's current value, so concurrent
+        wins are not lost (unlike a read-modify-write of the loaded dict).
+        """
+        def object_or_empty(value):
+            # Treat SQL NULL and JSON null (how a None value is stored) as {}.
+            return func.coalesce(func.nullif(value, cast(literal("null"), JSONB)), cast(literal("{}"), JSONB))
+
+        length, guess = str(word_length), str(guesses)
+        current = object_or_empty(cls.guess_distribution)
+        with_length = func.jsonb_set(
+            current, cast(literal([length]), ARRAY(Text)), object_or_empty(current[length])
+        )
+        count = func.coalesce(current[length][guess].astext.cast(Integer), 0) + 1
+        return (
+            update(cls)
+            .where(cls.user_id == user_id)
+            .values(guess_distribution=func.jsonb_set(with_length, cast(literal([length, guess]), ARRAY(Text)), func.to_jsonb(count)))
+        )
