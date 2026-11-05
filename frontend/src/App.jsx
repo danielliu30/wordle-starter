@@ -1,33 +1,31 @@
-import { useState, useEffect } from 'react'
+import { AppProvider } from './context/AppProvider'
+import ErrorBoundary from './components/ErrorBoundary'
+import Nav from './components/Nav'
+import AppRouter from './components/AppRouter'
 import './App.css'
 
-const API_URL = 'http://localhost:8000'
-
+/**
+ * App — top-level orchestrator.
+ *
+ * Composition order matters: ErrorBoundary catches render failures in
+ * everything below it; AppProvider supplies route/user state to Nav and
+ * the routed view.
+ */
 function App() {
-  const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch(`${API_URL}/`)
-      .then((response) => response.json())
-      .then((data) => {
-        setMessage(data.message)
-        setLoading(false)
-      })
-      .catch((error) => {
-        console.error('Error fetching from API:', error)
-        setMessage('Failed to connect to API')
-        setLoading(false)
-      })
-  }, [])
-
   return (
-    <>
-      <h1>Wordle</h1>
-      <div className="card">
-        <p>API Response: {loading ? 'Loading...' : message}</p>
-      </div>
-    </>
+    <ErrorBoundary>
+      <AppProvider>
+        <div className="app">
+          <header className="app__header">
+            <span className="app__brand">Wordle</span>
+            <Nav />
+          </header>
+          <main className="app__main">
+            <AppRouter />
+          </main>
+        </div>
+      </AppProvider>
+    </ErrorBoundary>
   )
 }
 
