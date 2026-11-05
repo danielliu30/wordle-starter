@@ -1,8 +1,8 @@
 """Tests for user model (PostgreSQL only)
 
-The PostgreSQL integration tests run only when TEST_DATABASE_URL is set, e.g. after
-`docker compose up -d db`:
-    TEST_DATABASE_URL=postgresql+asyncpg://wordle:wordle@localhost:5432/wordle
+The PostgreSQL integration tests run only when TEST_DATABASE_URL is set, e.g. against
+the Compose database (not published to the host) from inside the backend container:
+    docker compose exec backend sh -c 'TEST_DATABASE_URL="$DATABASE_URL" pytest test_user_model.py'
 The role needs CREATE on that database: each test runs in its own throwaway schema.
 """
 import asyncio
