@@ -1,12 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.middleware.request_id import (
-    RequestIDMiddleware,
-    request_id_server_error_handler,
-)
+from app.middleware.error_handler import register_exception_handlers
+from app.middleware.request_id import RequestIDMiddleware
 
 app = FastAPI()
+register_exception_handlers(app)
 
 # Configure CORS
 app.add_middleware(
@@ -19,7 +18,6 @@ app.add_middleware(
 )
 
 app.add_middleware(RequestIDMiddleware)
-app.add_exception_handler(Exception, request_id_server_error_handler)
 
 
 @app.get("/")

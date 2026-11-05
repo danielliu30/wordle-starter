@@ -1,0 +1,28 @@
+"""
+Word of Day Attempt Model
+
+SQLAlchemy ORM model for Word of the Day attempts.
+PostgreSQL only (same database for local dev and production).
+"""
+from sqlalchemy import Column, Date, DateTime, ForeignKey, CheckConstraint, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+
+# Share the users and games tables' metadata so both foreign keys resolve.
+from app.database.game_model import Base, Game  # noqa: F401
+from app.database.user_model import User  # noqa: F401
+
+
+class WordOfDayAttempt(Base):
+    """Word of the Day attempts table"""
+    __tablename__ = "word_of_day_attempts"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    attempt_date = Column(Date, nullable=False)
+    game_id = Column(UUID(as_uuid=True), ForeignKey("games.id", ondelete="SET NULL"))
+    created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("user_id IS NOT NULL"),
+        # One Word of the Day attempt per user per day.
+        UniqueConstraint("user_id", "attempt_date", name="uq_wod_user_date"),
+    )
