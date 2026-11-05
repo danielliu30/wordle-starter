@@ -39,6 +39,7 @@ def test_user_session_table_compiles_for_postgresql():
     assert "id UUID NOT NULL" in ddl
     assert "user_id UUID," in ddl
     assert "FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE" in ddl
+    assert "device_info JSONB," in ddl
 
 
 def test_lookup_indexes_declared():

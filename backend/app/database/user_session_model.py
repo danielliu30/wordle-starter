@@ -4,8 +4,8 @@ User Session Model
 SQLAlchemy ORM model for user sessions (refresh tokens).
 PostgreSQL only (same database for local dev and production).
 """
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, CheckConstraint, Index, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint, Index, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 import uuid
 
 # Share the users table's metadata so the user_id foreign key resolves.
@@ -24,7 +24,7 @@ class UserSession(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     refresh_token_hash = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False)
-    device_info = Column(JSON)
+    device_info = Column(JSONB)
     created_at = Column(DateTime, server_default=func.now())
     expires_at = Column(DateTime, nullable=False)
     revoked_at = Column(DateTime)
