@@ -4,7 +4,7 @@ User Stats Model
 SQLAlchemy ORM model for user statistics.
 PostgreSQL only (same database for local dev and production).
 """
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, JSON, func
+from sqlalchemy import Column, Integer, Numeric, DateTime, ForeignKey, JSON, func
 from sqlalchemy.dialects.postgresql import UUID
 
 # Share the users table's metadata so the user_id foreign key resolves.
@@ -20,6 +20,6 @@ class UserStats(Base):
     games_lost = Column(Integer, default=0)
     current_streak = Column(Integer, default=0)
     best_streak = Column(Integer, default=0)
-    avg_guesses_to_win = Column(Integer)
+    avg_guesses_to_win = Column(Numeric(3, 2))
     guess_distribution = Column(JSON, default={})
     updated_at = Column(DateTime, server_default=func.now())

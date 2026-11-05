@@ -7,10 +7,11 @@ The role needs CREATE on that database: each test runs in its own throwaway sche
 """
 import os
 import uuid
+from decimal import Decimal
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.schema import CreateTable
@@ -36,6 +37,7 @@ def test_user_stats_table_compiles_for_postgresql():
     ddl = str(CreateTable(UserStats.__table__).compile(dialect=postgresql.dialect()))
     assert "user_id UUID NOT NULL" in ddl
     assert "FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE" in ddl
+    assert "avg_guesses_to_win NUMERIC(3, 2)" in ddl
 
 
 requires_postgres = pytest.mark.skipif(
@@ -80,3 +82,13 @@ async def add_stats(pg_session, **values):
 async def test_user_stats_insert_on_postgresql(pg_session):
     stats = await add_stats(pg_session)
     assert stats.games_played == 0
+
+
+@requires_postgres
+@pytest.mark.asyncio
+async def test_fractional_avg_guesses_round_trip_on_postgresql(pg_session):
+    stats = await add_stats(pg_session, avg_guesses_to_win=Decimal("3.5"))
+    stored = (await pg_session.execute(
+        select(UserStats.avg_guesses_to_win).where(UserStats.user_id == stats.user_id)
+    )).scalar_one()
+    assert stored == Decimal("3.50")
