@@ -24,7 +24,8 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-wordle}:${POSTGRES_PASSWORD:-wordle}@db:5432/wordle
+      # Set DATABASE_URL directly when the password has URL-reserved characters (percent-encode them).
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-wordle}:${POSTGRES_PASSWORD:-wordle}@db:5432/wordle}
     depends_on:
       db:
         condition: service_healthy
